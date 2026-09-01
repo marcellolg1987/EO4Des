@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+
+  <!-- Public CesiumJS CDN: suitable for GitHub Pages -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.89/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.89/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+
+  <title>EO4DES WebGIS Demo</title>
+
+  <style>
+    html, body, #cesiumContainer {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #cesiumContainer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .top-banner {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 8px 26px rgba(0,0,0,0.24);
+      backdrop-filter: blur(8px);
+    }
+
+    .top-banner img.eu-logo {
+      height: 58px;
+      max-width: 46%;
+      object-fit: contain;
+    }
+
+    .top-banner img.project-logo {
+      height: 76px;
+      max-width: 170px;
+      object-fit: contain;
+    }
+
+    .top-banner-title {
+      flex: 1;
+      text-align: center;
+      color: #263238;
+      line-height: 1.25;
+    }
+
+    .top-banner-title strong {
+      display: block;
+      font-size: 1.25rem;
+      letter-spacing: .04em;
+      color: #2f7d32;
+    }
+
+    .top-banner-title span {
+      font-size: .9rem;
+      color: #455a64;
+    }
+
+    .layer-panel {
+      position: absolute;
+      top: 125px;
+      left: 18px;
+      z-index: 11;
+      width: 335px;
+      padding: 18px;
+      border-radius: 18px;
+      color: #fff;
+      background: linear-gradient(145deg, rgba(19,35,42,.92), rgba(34,75,62,.88));
+      box-shadow: 0 10px 30px rgba(0,0,0,.32);
+      backdrop-filter: blur(8px);
+    }
+
+    .layer-panel h3 {
+      margin: 0 0 12px 0;
+      color: #fff;
+      font-size: 1.05rem;
+      letter-spacing: .03em;
+    }
+
+    .layer-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: .82rem;
+      color: rgba(255,255,255,.82);
+    }
+
+    .layer-panel select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 10px;
+      background: rgba(255,255,255,.96);
+      color: #263238;
+      font-size: .92rem;
+      outline: none;
+    }
+
+    .layer-note,
+    .status-note {
+      margin: 12px 0 0 0;
+      font-size: .78rem;
+      color: rgba(255,255,255,.72);
+      line-height: 1.35;
+    }
+
+    .status-note {
+      display: none;
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: rgba(255,255,255,.10);
+    }
+
+    .legend-panel {
+      position: absolute;
+      left: 18px;
+      bottom: 28px;
+      z-index: 11;
+      display: none;
+      min-width: 250px;
+      max-width: 340px;
+      padding: 15px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.94);
+      box-shadow: 0 10px 30px rgba(0,0,0,.30);
+      backdrop-filter: blur(8px);
+      color: #263238;
+    }
+
+    .legend-panel h4 {
+      margin: 0 0 10px 0;
+      font-size: .95rem;
+      color: #263238;
+    }
+
+    .legend-gradient {
+      height: 18px;
+      border-radius: 9px;
+      margin-bottom: 7px;
+      border: 1px solid rgba(0,0,0,.12);
+    }
+
+    .legend-scale {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: .72rem;
+      color: #546e7a;
+    }
+
+    .legend-description {
+      margin-top: 8px;
+      font-size: .78rem;
+      color: #546e7a;
+      line-height: 1.35;
+    }
+
+    .cesium-viewer-toolbar,
+    .cesium-viewer-animationContainer,
+    .cesium-viewer-timelineContainer,
+    .cesium-viewer-bottom,
+    .cesium-viewer-fullscreenContainer {
+      display: none !important;
+    }
+
+    .cesium-infoBox {
+      top: 120px !important;
+      right: 18px !important;
+      max-height: calc(100vh - 145px) !important;
+      z-index: 12 !important;
+      border-radius: 14px !important;
+      overflow: hidden !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.28) !important;
+    }
+
+    .cesium-infoBox-title {
+      padding: 10px 38px 10px 14px !important;
+    }
+
+    @media (max-width: 760px) {
+      .top-banner {
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        padding: 8px 10px;
+        gap: 8px;
+      }
+
+      .top-banner img.eu-logo {
+        height: 42px;
+        max-width: 44%;
+      }
+
+      .top-banner img.project-logo {
+        height: 52px;
+        max-width: 90px;
+      }
+
+      .top-banner-title strong {
+        font-size: .95rem;
+      }
+
+      .top-banner-title span {
+        font-size: .72rem;
+      }
+
+      .layer-panel {
+        top: 92px;
+        left: 8px;
+        right: 8px;
+        width: auto;
+        padding: 13px;
+      }
+
+      .legend-panel {
+        left: 8px;
+        right: 8px;
+        bottom: 12px;
+        max-width: none;
+      }
+
+      .cesium-infoBox {
+        top: 88px !important;
+        right: 8px !important;
+        left: 8px !important;
+        width: auto !important;
+        max-height: calc(100vh - 105px) !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="cesiumContainer"></div>
+
+<header class="top-banner">
+  <img class="eu-logo" src="images/europa.png" alt="European Union - NextGenerationEU">
+  <div class="top-banner-title">
+    <strong>EO4DES WebGIS Demo</strong>
+    <span>Earth Observation for Desertification</span>
+  </div>
+  <img class="project-logo" src="images/logo.png" alt="EO4DES logo">
+</header>
+
+<section class="layer-panel">
+  <h3>WebGIS Layers</h3>
+  <label for="layerSelect">Select a thematic layer</label>
+  <select id="layerSelect">
+    <option value="none">Base map only</option>
+    <option value="Thermalanomaly_Lecce_14082024">Thermal anomaly - Lecce 14/08/2024</option>
+    <option value="StatistichezonaliDT_Lecce_14082024">Zonal statistics DT - Lecce 14/08/2024</option>
+    <option value="Land_Surface_Temperature_Lecce_14082025">Land Surface Temperature - Lecce 14/08/2025</option>
+  </select>
+  <p class="layer-note">
+    Static GitHub Pages demo: no GeoServer/PostGIS connection is required.
+  </p>
+  <div id="statusNote" class="status-note"></div>
+</section>
+
+<section id="legendPanel" class="legend-panel">
+  <h4 id="legendTitle">Legend</h4>
+  <div id="legendGradient" class="legend-gradient"></div>
+  <div id="legendScale" class="legend-scale">
+    <span id="legendMin"></span>
+    <span id="legendMax"></span>
+  </div>
+  <div id="legendDescription" class="legend-description"></div>
+</section>
+
+<script>
+  /*
+    EO4DES GitHub Demo
+    ------------------
+    Expected static files:
+
+    data/regioni.geojson
+    data/statistiche_zonali_lecce.geojson
+    data/thermal_anomaly_lecce_14082024.png
+    data/lst_lecce_14082025.png
+
+    IMPORTANT:
+    Update DEMO_EXTENT below with the exact geographic extent
+    of your exported raster images (west, south, east, north, EPSG:4326).
+  */
+
+  const DEMO_EXTENT = {
+    // Approximate Lecce-area placeholder. Replace with your exact raster bounds.
+    west: 17.85,
+    south: 40.10,
+    east: 18.55,
+    north: 40.65
+  };
+
+  const viewer = new Cesium.Viewer("cesiumContainer", {
+    terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+    imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+      url: "https://tile.openstreetmap.org/"
+    }),
+    animation: false,
+    timeline: false,
+    baseLayerPicker: false,
+    geocoder: false,
+    homeButton: false,
+    sceneModePicker: false,
+    navigationHelpButton: false,
+    fullscreenButton: false,
+    vrButton: false,
+    selectionIndicator: false,
+    infoBox: true
+  });
+
+  viewer.camera.setView({
+    destination: Cesium.Rectangle.fromDegrees(
+      DEMO_EXTENT.west,
+      DEMO_EXTENT.south,
+      DEMO_EXTENT.east,
+      DEMO_EXTENT.north
+    ),
+    orientation: {
+      heading: Cesium.Math.toRadians(0.0),
+      pitch: Cesium.Math.toRadians(-70.0),
+      roll: 0.0
+    }
+  });
+
+  const layers = viewer.scene.imageryLayers;
+
+  let currentRasterLayer = null;
+  let zonalDataSource = null;
+  let regioniDataSource = null;
+  let selectedEntity = null;
+  let previousMaterial = null;
+  let previousOutlineColor = null;
+
+  const statusNote = document.getElementById("statusNote");
+
+  function showStatus(message) {
+    statusNote.textContent = message;
+    statusNote.style.display = message ? "block" : "none";
+  }
+
+  function hideCurrentThematicLayer() {
+    if (currentRasterLayer) {
+      layers.remove(currentRasterLayer, true);
+      currentRasterLayer = null;
+    }
+
+    if (zonalDataSource) {
+      zonalDataSource.show = false;
+    }
+
+    clearSelection();
+  }
+
+  function clearSelection() {
+    if (selectedEntity && selectedEntity.polygon) {
+      if (previousMaterial) {
+        selectedEntity.polygon.material = previousMaterial;
+      }
+      if (previousOutlineColor) {
+        selectedEntity.polygon.outlineColor = previousOutlineColor;
+      }
+    }
+
+    selectedEntity = null;
+    previousMaterial = null;
+    previousOutlineColor = null;
+    viewer.selectedEntity = undefined;
+  }
+
+  function propertyValue(entity, key) {
+    if (!entity || !entity.properties || !entity.properties[key]) return null;
+    try {
+      return entity.properties[key].getValue(Cesium.JulianDate.now());
+    } catch (e) {
+      return entity.properties[key];
+    }
+  }
+
+  function propertyRows(entity) {
+    if (!entity.properties) {
+      return "<p>No attributes available.</p>";
+    }
+
+    const names = entity.properties.propertyNames || [];
+    let rows = "";
+
+    names.forEach(function(name) {
+      const value = propertyValue(entity, name);
+      if (value !== null && value !== undefined && value !== "") {
+        rows +=
+          "<tr>" +
+          "<td style='padding:6px 10px;border-bottom:1px solid #ddd;font-weight:600;'>" +
+          name +
+          "</td>" +
+          "<td style='padding:6px 10px;border-bottom:1px solid #ddd;'>" +
+          value +
+          "</td>" +
+          "</tr>";
+      }
+    });
+
+    return (
+      "<div style='font-family:Arial,sans-serif;padding:8px;'>" +
+      "<table style='border-collapse:collapse;width:100%;font-size:13px;'>" +
+      rows +
+      "</table></div>"
+    );
+  }
+
+  async function loadRegions() {
+    try {
+      regioniDataSource = await Cesium.GeoJsonDataSource.load(
+        "data/regioni.geojson",
+        {
+          clampToGround: true,
+          stroke: Cesium.Color.fromCssColorString("#d97706"),
+          fill: Cesium.Color.TRANSPARENT,
+          strokeWidth: 2
+        }
+      );
+
+      viewer.dataSources.add(regioniDataSource);
+
+      regioniDataSource.entities.values.forEach(function(entity) {
+        if (entity.polygon) {
+          entity.polygon.material = Cesium.Color.TRANSPARENT;
+          entity.polygon.outline = true;
+          entity.polygon.outlineColor = Cesium.Color.fromCssColorString("#d97706");
+        }
+      });
+    } catch (error) {
+      console.warn("Optional regions GeoJSON not loaded:", error);
+    }
+  }
+
+  async function loadZonalStatistics() {
+    if (zonalDataSource) {
+      zonalDataSource.show = true;
+      return;
+    }
+
+    try {
+      zonalDataSource = await Cesium.GeoJsonDataSource.load(
+        "data/statistiche_zonali_lecce.geojson",
+        {
+          clampToGround: true,
+          stroke: Cesium.Color.fromCssColorString("#666666"),
+          fill: Cesium.Color.fromCssColorString("#9e9e9e").withAlpha(0.58),
+          strokeWidth: 1.5
+        }
+      );
+
+      viewer.dataSources.add(zonalDataSource);
+
+      zonalDataSource.entities.values.forEach(function(entity) {
+        entity.name =
+          "Zonal statistics" +
+          (propertyValue(entity, "fid") !== null
+            ? " - fid " + propertyValue(entity, "fid")
+            : "");
+
+        entity.description = new Cesium.ConstantProperty(
+          propertyRows(entity)
+        );
+
+        if (entity.polygon) {
+          entity.polygon.material =
+            Cesium.Color.fromCssColorString("#9e9e9e").withAlpha(0.58);
+          entity.polygon.outline = true;
+          entity.polygon.outlineColor =
+            Cesium.Color.fromCssColorString("#666666");
+        }
+      });
+
+      zonalDataSource.show = true;
+    } catch (error) {
+      console.error(error);
+      showStatus(
+        "Missing data/statistiche_zonali_lecce.geojson. Export the GeoServer shapefile as GeoJSON and add it to the data folder."
+      );
+    }
+  }
+
+  function addStaticRaster(fileName) {
+    currentRasterLayer = layers.addImageryProvider(
+      new Cesium.SingleTileImageryProvider({
+        url: fileName,
+        rectangle: Cesium.Rectangle.fromDegrees(
+          DEMO_EXTENT.west,
+          DEMO_EXTENT.south,
+          DEMO_EXTENT.east,
+          DEMO_EXTENT.north
+        )
+      })
+    );
+
+    currentRasterLayer.alpha = 0.85;
+  }
+
+  const layerMetadata = {
+    none: {
+      title: "",
+      gradient: "",
+      min: "",
+      max: "",
+      description: ""
+    },
+
+    Thermalanomaly_Lecce_14082024: {
+      title: "Thermal anomaly - Lecce 14/08/2024",
+      gradient:
+        "linear-gradient(90deg,#08306B,#2171B5,#6BAED6,#C6DBEF,#FFFFFF,#FEE08B,#FDAE61,#F46D43,#D73027)",
+      min: "-20 Â°C",
+      max: "+9 Â°C",
+      description:
+        "Negative values indicate cooler-than-reference areas; positive values indicate warmer anomalies."
+    },
+
+    StatistichezonaliDT_Lecce_14082024: {
+      title: "Zonal statistics DT - Lecce 14/08/2024",
+      gradient: "linear-gradient(90deg,#9e9e9e,#9e9e9e)",
+      min: "Polygon",
+      max: "Click to inspect",
+      description:
+        "Static GeoJSON polygons. Click a polygon to highlight it and open its attributes in the Cesium InfoBox."
+    },
+
+    Land_Surface_Temperature_Lecce_14082025: {
+      title: "Land Surface Temperature - Lecce 14/08/2025",
+      gradient:
+        "linear-gradient(90deg,#FFF7BC,#FEC44F,#FE9929,#EC7014,#CC4C02,#8C2D04)",
+      min: "25 Â°C",
+      max: "50 Â°C",
+      description:
+        "Land Surface Temperature rendered from a static PNG exported from the original raster."
+    }
+  };
+
+  function updateLegend(selectedLayer) {
+    const legendPanel = document.getElementById("legendPanel");
+    const legendTitle = document.getElementById("legendTitle");
+    const legendGradient = document.getElementById("legendGradient");
+    const legendMin = document.getElementById("legendMin");
+    const legendMax = document.getElementById("legendMax");
+    const legendDescription = document.getElementById("legendDescription");
+
+    const meta = layerMetadata[selectedLayer];
+
+    if (!meta || !meta.gradient) {
+      legendPanel.style.display = "none";
+      return;
+    }
+
+    legendTitle.textContent = meta.title;
+    legendGradient.style.background = meta.gradient;
+    legendMin.textContent = meta.min;
+    legendMax.textContent = meta.max;
+    legendDescription.textContent = meta.description || "";
+    legendPanel.style.display = "block";
+  }
+
+  document.getElementById("layerSelect").addEventListener(
+    "change",
+    async function(event) {
+      const selectedLayer = event.target.value;
+
+      hideCurrentThematicLayer();
+      showStatus("");
+      updateLegend(selectedLayer);
+
+      if (selectedLayer === "none") {
+        return;
+      }
+
+      if (selectedLayer === "Thermalanomaly_Lecce_14082024") {
+        addStaticRaster("data/thermal_anomaly_lecce_14082024.png");
+        return;
+      }
+
+      if (selectedLayer === "Land_Surface_Temperature_Lecce_14082025") {
+        addStaticRaster("data/lst_lecce_14082025.png");
+        return;
+      }
+
+      if (selectedLayer === "StatistichezonaliDT_Lecce_14082024") {
+        await loadZonalStatistics();
+      }
+    }
+  );
+
+  const clickHandler = new Cesium.ScreenSpaceEventHandler(
+    viewer.scene.canvas
+  );
+
+  clickHandler.setInputAction(
+    function(click) {
+      if (!zonalDataSource || !zonalDataSource.show) {
+        return;
+      }
+
+      const picked = viewer.scene.pick(click.position);
+
+      if (!Cesium.defined(picked) || !picked.id) {
+        clearSelection();
+        return;
+      }
+
+      const entity = picked.id;
+
+      if (!zonalDataSource.entities.contains(entity) || !entity.polygon) {
+        return;
+      }
+
+      clearSelection();
+
+      selectedEntity = entity;
+      previousMaterial = entity.polygon.material;
+      previousOutlineColor = entity.polygon.outlineColor;
+
+      entity.polygon.material =
+        Cesium.Color.fromCssColorString("#ff8c00").withAlpha(0.75);
+      entity.polygon.outline = true;
+      entity.polygon.outlineColor =
+        Cesium.Color.fromCssColorString("#ff5a00");
+
+      viewer.selectedEntity = entity;
+    },
+    Cesium.ScreenSpaceEventType.LEFT_CLICK
+  );
+
+  loadRegions();
+</script>
+
+</body>
+</html>
